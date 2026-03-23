@@ -1,70 +1,130 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Excel Validator and Converter</title>
-    <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-</head>
-<body>
-    <div class="app-container">
-        <header>
-            <h1>Excel Validator <span>and Converter</span></h1>
-            <p>Преобразование Excel в CSV и проверка данных</p>
-        </header>
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const downloadBtn = document.getElementById('downloadBtn');
+const reportContainer = document.getElementById('report-container');
 
-        <main class="card">
-            <div id="dropzone" class="dropzone">
-                <div class="dz-content">
-                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-                    </svg>
-                    <p>Перетащите файл или</p>
-                    <label for="fileInput" class="btn-secondary">Выберите Excel</label>
-                    <input type="file" id="fileInput" accept=".xlsx, .xls" hidden />
-                </div>
-            </div>
+let csvContent = ""; 
+let modifiedRows = []; 
+let rejectedRows = []; 
 
-            <div id="report-container" class="report-container" style="display: none;">
-                <div id="stats-summary" class="stats-grid"></div>
+// --- Drag-and-Drop ---
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => {
+    dropzone.addEventListener(e, (ev) => { ev.preventDefault(); ev.stopPropagation(); });
+});
 
-                <div class="status-message">
-                    ✅ Проверка завершена
-                </div>
+dropzone.addEventListener('dragover', () => dropzone.classList.add('dragover'));
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', (e) => {
+    dropzone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+});
 
-                <div class="view-controls">
-                    <button id="showModifiedBtn" class="btn-outline">Показать изменения</button>
-                    <button id="showRejectedBtn" class="btn-outline">Показать удаленные</button>
-                </div>
+fileInput.addEventListener('change', (e) => {
+    if (e.target.files[0]) handleFile(e.target.files[0]);
+});
 
-                <div id="modified-details" class="details-section" style="display: none;">
-                    <h4>📝 Лог исправлений:</h4>
-                    <div class="table-wrapper" id="modified-table-container"></div>
-                </div>
+function handleFile(file) {
+    if (!file.name.match(/\.(xlsx|xls)$/)) { alert("Нужен Excel файл!"); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: "" });
+        processData(json);
+    };
+    reader.readAsArrayBuffer(file);
+}
 
-                <div id="rejected-details" class="details-section" style="display: none;">
-                    <h4>❌ Удаленные строки:</h4>
-                    <div class="table-wrapper" id="rejected-table-container"></div>
-                </div>
-                
-                <div class="actions">
-                    <button id="downloadBtn" class="btn-primary">
-                        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
-                        </svg>
-                        Скачать CSV
-                    </button>
-                </div>
-            </div>
-        </main>
+function processData(data) {
+    if (data.length === 0) return;
+    const headers = data[0];
+    const rows = data.slice(1);
+    const colIndex = headers.findIndex(h => String(h || "").trim().toLowerCase() === "название компании");
 
-        <footer>
-            <p>© 2026 • Обработка данных в браузере</p>
-        </footer>
-    </div>
+    if (colIndex === -1) { alert("Колонка 'Название компании' не найдена!"); return; }
 
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-    <script src="script.js"></script>
-</body>
-</html>
+    let validRowsForExport = [headers];
+    modifiedRows = [];
+    rejectedRows = [];
+
+    rows.forEach((originalRow, index) => {
+        const rowNum = index + 2;
+        let row = originalRow.map(c => String(c || "").trim());
+        if (row.every(c => c === "")) return;
+
+        const originalName = row[colIndex];
+        if (!originalName) {
+            rejectedRows.push({ rowNum, reason: "Пустое название", rowData: row });
+            return;
+        }
+
+        let cleanName = originalName.replace(/["'«»„“]/g, '').toUpperCase();
+
+        if (cleanName !== originalName) {
+            modifiedRows.push({ rowNum, oldVal: originalName, newVal: cleanName, rowData: [...row] });
+            row[colIndex] = cleanName;
+        }
+        validRowsForExport.push(row);
+    });
+
+    renderUI(headers, validRowsForExport.length - 1);
+    const ws = XLSX.utils.aoa_to_sheet(validRowsForExport);
+    csvContent = XLSX.utils.sheet_to_csv(ws);
+}
+
+function renderUI(headers, successCount) {
+    reportContainer.style.display = 'block';
+    const stats = document.getElementById('stats-summary');
+    stats.innerHTML = `
+        <div class="stat-card"><div class="stat-label">В итоге</div><div class="stat-value" style="color:var(--success)">${successCount}</div></div>
+        <div class="stat-card"><div class="stat-label">Изменено</div><div class="stat-value" style="color:var(--warning)">${modifiedRows.length}</div></div>
+        <div class="stat-card"><div class="stat-label">Удалено</div><div class="stat-value" style="color:var(--danger)">${rejectedRows.length}</div></div>
+    `;
+
+    document.getElementById('showModifiedBtn').style.display = modifiedRows.length > 0 ? 'inline-block' : 'none';
+    document.getElementById('showRejectedBtn').style.display = rejectedRows.length > 0 ? 'inline-block' : 'none';
+
+    fillTable('modified-table-container', headers, modifiedRows, true);
+    fillTable('rejected-table-container', headers, rejectedRows, false);
+}
+
+function fillTable(containerId, headers, data, isModified) {
+    const container = document.getElementById(containerId);
+    // Изменено "Стр." -> "Номер строки"
+    let html = `<table><thead><tr><th>Номер строки</th><th>${isModified ? 'Было ➔ Стало' : 'Причина'}</th>`;
+    headers.forEach(h => html += `<th>${h}</th>`);
+    html += `</tr></thead><tbody>`;
+
+    data.forEach(item => {
+        html += `<tr><td>${item.rowNum}</td>`;
+        if (isModified) {
+            html += `<td><span class="old-val">${item.oldVal}</span> <span class="new-val">➔ ${item.newVal}</span></td>`;
+        } else {
+            html += `<td><span class="reason-badge">${item.reason}</span></td>`;
+        }
+        item.rowData.forEach(c => html += `<td>${c}</td>`);
+        html += `</tr>`;
+    });
+    container.innerHTML = html + `</tbody></table>`;
+}
+
+document.getElementById('showModifiedBtn').onclick = function() {
+    this.classList.toggle('active');
+    const el = document.getElementById('modified-details');
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+};
+
+document.getElementById('showRejectedBtn').onclick = function() {
+    this.classList.toggle('active');
+    const el = document.getElementById('rejected-details');
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+};
+
+downloadBtn.onclick = () => {
+    const blob = new Blob(["\ufeff", csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `data_${new Date().getTime()}.csv`;
+    link.click();
+};
