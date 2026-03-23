@@ -91,15 +91,17 @@ function renderUI(headers, successCount) {
 
 function fillTable(containerId, headers, data, isModified) {
     const container = document.getElementById(containerId);
-    // Изменено "Стр." -> "Номер строки"
-    let html = `<table><thead><tr><th>Номер строки</th><th>${isModified ? 'Было ➔ Стало' : 'Причина'}</th>`;
+    let html = `<table><thead><tr><th style="width: 100px;">Номер строки</th><th style="min-width: 250px;">${isModified ? 'Было ➔ Стало' : 'Причина'}</th>`;
     headers.forEach(h => html += `<th>${h}</th>`);
     html += `</tr></thead><tbody>`;
 
     data.forEach(item => {
-        html += `<tr><td>${item.rowNum}</td>`;
+        html += `<tr><td><strong>${item.rowNum}</strong></td>`;
         if (isModified) {
-            html += `<td><span class="old-val">${item.oldVal}</span> <span class="new-val">➔ ${item.newVal}</span></td>`;
+            html += `<td>
+                <div class="old-val">${item.oldVal}</div> 
+                <div class="new-val">➔ ${item.newVal}</div>
+            </td>`;
         } else {
             html += `<td><span class="reason-badge">${item.reason}</span></td>`;
         }
