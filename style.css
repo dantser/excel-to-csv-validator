@@ -1,42 +1,152 @@
-/* Основной контейнер */
-.card { 
-    background: white; 
-    padding: 30px; 
-    border-radius: 12px; 
-    box-shadow: 0 8px 24px rgba(0,0,0,0.1); 
-    width: 90%; /* Сделаем шире для таблицы */
-    max-width: 1000px; 
+:root {
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --success: #10b981;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --text-main: #1f2937;
+    --text-muted: #6b7280;
+    --bg-app: #f9fafb;
+    --card-bg: #ffffff;
+    --border: #e5e7eb;
 }
 
-/* Обертка для таблицы с прокруткой */
+* { box-sizing: border-box; }
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-app);
+    color: var(--text-main);
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+.app-container {
+    width: 100%;
+    max-width: 900px;
+    padding: 40px 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+}
+
+header h1 span { color: var(--primary); }
+
+header p { color: var(--text-muted); margin: 0; }
+
+.card {
+    background: var(--card-bg);
+    border-radius: 16px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    padding: 32px;
+}
+
+/* Dropzone Styles */
+.dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    transition: all 0.2s ease;
+    background: #fafafa;
+}
+
+.dropzone.dragover {
+    border-color: var(--primary);
+    background: #eef2ff;
+}
+
+.dz-content p {
+    margin: 16px 0;
+    color: var(--text-muted);
+}
+
+.icon { width: 48px; height: 48px; color: var(--text-muted); }
+.icon-sm { width: 18px; height: 18px; margin-right: 8px; vertical-align: middle; }
+
+/* Buttons */
+.btn-primary, .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+    border: none;
+    width: 100%;
+    font-size: 1rem;
+}
+
+.btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+
+.btn-secondary {
+    background: white;
+    color: var(--text-main);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover { background: #f3f4f6; }
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+    margin: 24px 0;
+}
+
+.stat-card {
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
+.stat-value { font-size: 1.25rem; font-weight: 700; margin-top: 4px; }
+
+/* Table Styles */
 .table-wrapper {
     overflow-x: auto;
-    margin-top: 15px;
-    border: 1px solid #eee;
+    margin-top: 24px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
 }
 
-th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-    white-space: nowrap; /* Чтобы текст не переносился и таблица была читаемой */
+th { background: #f9fafb; padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
+td { padding: 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+
+tr:last-child td { border-bottom: none; }
+.reason-badge {
+    background: #fee2e2;
+    color: var(--danger);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
 }
 
-th {
-    background-color: #f8f9fa;
-    position: sticky;
-    top: 0;
-}
-
-tr:hover { background-color: #fff4f4; } /* Подсветка проблемной строки при наведении */
-
-.reason-cell {
-    color: #d93025;
-    font-weight: bold;
-}
+footer { text-align: center; margin-top: 32px; color: var(--text-muted); font-size: 0.85rem; }
