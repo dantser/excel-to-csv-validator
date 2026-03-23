@@ -101,7 +101,7 @@ function processData(data) {
 
     renderUI(headers, validRows.length - 1);
     const ws = XLSX.utils.aoa_to_sheet(validRows);
-    csvContent = XLSX.utils.sheet_to_csv(ws);
+    csvContent = XLSX.utils.sheet_to_csv(ws, { FS: ";" });
 
     if (rejectedRows.length > 0) {
         const rejData = rejectedRows.map(r => {
