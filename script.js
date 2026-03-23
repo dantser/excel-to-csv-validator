@@ -4,10 +4,11 @@ const downloadBtn = document.getElementById('downloadBtn');
 const reportContainer = document.getElementById('report-container');
 
 let csvContent = ""; 
+let rejectedCsvContent = "";
 let modifiedRows = []; 
 let rejectedRows = []; 
 
-// --- Drag-and-Drop ---
+// --- Файловая логика ---
 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => {
     dropzone.addEventListener(e, (ev) => { ev.preventDefault(); ev.stopPropagation(); });
 });
@@ -40,18 +41,15 @@ function processData(data) {
     const headers = data[0];
     const rows = data.slice(1);
 
-    const colNameIndex = headers.findIndex(h => String(h || "").trim().toLowerCase() === "название компании");
-    const colInnIndex = headers.findIndex(h => String(h || "").trim().toLowerCase() === "инн");
+    const colNameIdx = headers.findIndex(h => String(h || "").trim().toLowerCase() === "название компании");
+    const colInnIdx = headers.findIndex(h => String(h || "").trim().toLowerCase() === "инн");
 
-    if (colNameIndex === -1 || colInnIndex === -1) {
-        let missing = [];
-        if (colNameIndex === -1) missing.push('"Название компании"');
-        if (colInnIndex === -1) missing.push('"ИНН"');
-        alert(`Ошибка: В файле не найдены колонки: ${missing.join(', ')}`);
+    if (colNameIdx === -1 || colInnIdx === -1) {
+        alert("Колонки 'Название компании' и 'ИНН' обязательны!");
         return;
     }
 
-    let validRowsForExport = [headers];
+    let validRows = [headers];
     modifiedRows = [];
     rejectedRows = [];
 
@@ -60,8 +58,8 @@ function processData(data) {
         let row = originalRow.map(c => String(c || "").trim());
         if (row.every(c => c === "")) return;
 
-        const originalName = row[colNameIndex];
-        const innValue = row[colInnIndex];
+        const originalName = row[colNameIdx];
+        const innValue = row[colInnIdx];
 
         let errors = [];
         if (!originalName) errors.push("Пустое название");
@@ -77,27 +75,33 @@ function processData(data) {
         let cleanInn = innValue.replace(/["'«»„“\s]/g, '');
 
         if (cleanName !== originalName || cleanInn !== innValue) {
-            modifiedRows.push({ 
-                rowNum, 
-                oldVal: originalName + (cleanInn !== innValue ? ` (ИНН: ${innValue})` : ""), 
-                newVal: cleanName + (cleanInn !== innValue ? ` (ИНН: ${cleanInn})` : ""), 
-                rowData: [...row] 
-            });
-            row[colNameIndex] = cleanName;
-            row[colInnIndex] = cleanInn;
+            modifiedRows.push({ rowNum, oldVal: originalName, newVal: cleanName, rowData: [...row] });
+            row[colNameIdx] = cleanName;
+            row[colInnIdx] = cleanInn;
         }
-        validRowsForExport.push(row);
+        validRows.push(row);
     });
 
-    renderUI(headers, validRowsForExport.length - 1);
-    const ws = XLSX.utils.aoa_to_sheet(validRowsForExport);
+    renderUI(headers, validRows.length - 1);
+    
+    // Основной CSV
+    const ws = XLSX.utils.aoa_to_sheet(validRows);
     csvContent = XLSX.utils.sheet_to_csv(ws);
+
+    // CSV ошибок
+    if (rejectedRows.length > 0) {
+        const rejData = rejectedRows.map(r => {
+            let obj = { "Номер строки": r.rowNum, "Причина": r.reason };
+            headers.forEach((h, i) => obj[h] = r.rowData[i]);
+            return obj;
+        });
+        rejectedCsvContent = XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(rejData));
+    }
 }
 
 function renderUI(headers, successCount) {
     reportContainer.style.display = 'block';
-    const stats = document.getElementById('stats-summary');
-    stats.innerHTML = `
+    document.getElementById('stats-summary').innerHTML = `
         <div class="stat-card"><div class="stat-label">В итоге</div><div class="stat-value" style="color:var(--success)">${successCount}</div></div>
         <div class="stat-card"><div class="stat-label">Изменено</div><div class="stat-value" style="color:var(--warning)">${modifiedRows.length}</div></div>
         <div class="stat-card"><div class="stat-label">Удалено</div><div class="stat-value" style="color:var(--danger)">${rejectedRows.length}</div></div>
@@ -106,68 +110,42 @@ function renderUI(headers, successCount) {
     document.getElementById('showModifiedBtn').style.display = modifiedRows.length > 0 ? 'inline-block' : 'none';
     document.getElementById('showRejectedBtn').style.display = rejectedRows.length > 0 ? 'inline-block' : 'none';
 
-    // Сброс состояния табов при новой загрузке
-    hideAllDetails();
-
+    resetTabs();
     fillTable('modified-table-container', headers, modifiedRows, true);
     fillTable('rejected-table-container', headers, rejectedRows, false);
 }
 
-function fillTable(containerId, headers, data, isModified) {
+function fillTable(containerId, headers, data, isMod) {
     const container = document.getElementById(containerId);
-    let html = `<table><thead><tr><th>Номер строки</th><th>${isModified ? 'Было ➔ Стало' : 'Причина'}</th>`;
+    let html = `<table><thead><tr><th>Номер строки</th><th>${isMod ? 'Было ➔ Стало' : 'Причина'}</th>`;
     headers.forEach(h => html += `<th>${h}</th>`);
     html += `</tr></thead><tbody>`;
-
     data.forEach(item => {
         html += `<tr><td>${item.rowNum}</td>`;
-        if (isModified) {
-            html += `<td><span class="old-val">${item.oldVal}</span> <span class="new-val">➔ ${item.newVal}</span></td>`;
-        } else {
-            html += `<td><span class="reason-badge">${item.reason}</span></td>`;
-        }
+        html += isMod ? `<td><span class="old-val">${item.oldVal}</span> <span class="new-val">➔ ${item.newVal}</span></td>` : `<td><span class="reason-badge">${item.reason}</span></td>`;
         item.rowData.forEach(c => html += `<td>${c}</td>`);
         html += `</tr>`;
     });
     container.innerHTML = html + `</tbody></table>`;
 }
 
-// --- ЛОГИКА ТАБОВ ---
+// --- Логика табов ---
+const mBtn = document.getElementById('showModifiedBtn'), rBtn = document.getElementById('showRejectedBtn');
+const mBox = document.getElementById('modified-details'), rBox = document.getElementById('rejected-details');
 
-const modBtn = document.getElementById('showModifiedBtn');
-const rejBtn = document.getElementById('showRejectedBtn');
-const modBox = document.getElementById('modified-details');
-const rejBox = document.getElementById('rejected-details');
+function resetTabs() { mBox.style.display = rBox.style.display = 'none'; mBtn.classList.remove('active'); rBtn.classList.remove('active'); }
 
-function hideAllDetails() {
-    modBox.style.display = 'none';
-    rejBox.style.display = 'none';
-    modBtn.classList.remove('active');
-    rejBtn.classList.remove('active');
-}
+mBtn.onclick = () => { const act = mBtn.classList.contains('active'); resetTabs(); if(!act) { mBox.style.display = 'block'; mBtn.classList.add('active'); }};
+rBtn.onclick = () => { const act = rBtn.classList.contains('active'); resetTabs(); if(!act) { rBox.style.display = 'block'; rBtn.classList.add('active'); }};
 
-modBtn.onclick = function() {
-    const isActive = this.classList.contains('active');
-    hideAllDetails();
-    if (!isActive) {
-        modBox.style.display = 'block';
-        this.classList.add('active');
-    }
-};
-
-rejBtn.onclick = function() {
-    const isActive = this.classList.contains('active');
-    hideAllDetails();
-    if (!isActive) {
-        rejBox.style.display = 'block';
-        this.classList.add('active');
-    }
-};
-
-downloadBtn.onclick = () => {
-    const blob = new Blob(["\ufeff", csvContent], { type: 'text/csv;charset=utf-8;' });
+// --- Скачивание ---
+function download(content, name) {
+    const blob = new Blob(["\ufeff", content], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `export_${new Date().getTime()}.csv`;
+    link.download = name;
     link.click();
-};
+}
+
+downloadBtn.onclick = () => download(csvContent, 'cleaned_data.csv');
+document.getElementById('downloadRejectedBtn').onclick = () => download(rejectedCsvContent, 'rejected_rows.csv');
