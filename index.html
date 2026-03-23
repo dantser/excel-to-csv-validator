@@ -33,6 +33,15 @@
                     ✅ Проверка завершена
                 </div>
 
+                <div class="main-action">
+                    <button id="downloadBtn" class="btn-primary">
+                        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                        </svg>
+                        Скачать CSV
+                    </button>
+                </div>
+
                 <div class="view-controls">
                     <button id="showModifiedBtn" class="btn-outline">Показать изменения</button>
                     <button id="showRejectedBtn" class="btn-outline">Показать удаленные</button>
@@ -46,15 +55,6 @@
                 <div id="rejected-details" class="details-section" style="display: none;">
                     <h4>❌ Удаленные строки:</h4>
                     <div class="table-wrapper" id="rejected-table-container"></div>
-                </div>
-                
-                <div class="actions">
-                    <button id="downloadBtn" class="btn-primary">
-                        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
-                        </svg>
-                        Скачать CSV
-                    </button>
                 </div>
             </div>
         </main>
