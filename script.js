@@ -40,11 +40,9 @@ function processData(data) {
     const headers = data[0];
     const rows = data.slice(1);
 
-    // Умный поиск индексов колонок
     const colNameIndex = headers.findIndex(h => String(h || "").trim().toLowerCase() === "название компании");
     const colInnIndex = headers.findIndex(h => String(h || "").trim().toLowerCase() === "инн");
 
-    // Проверка наличия необходимых колонок
     if (colNameIndex === -1 || colInnIndex === -1) {
         let missing = [];
         if (colNameIndex === -1) missing.push('"Название компании"');
@@ -59,38 +57,25 @@ function processData(data) {
 
     rows.forEach((originalRow, index) => {
         const rowNum = index + 2;
-        
-        // 1. Глобальный Trim каждой ячейки
         let row = originalRow.map(c => String(c || "").trim());
-        
-        // Пропускаем полностью пустые строки
         if (row.every(c => c === "")) return;
 
         const originalName = row[colNameIndex];
         const innValue = row[colInnIndex];
 
-        // 2. Валидация: ОБЯЗАТЕЛЬНОСТЬ названия и ИНН
         let errors = [];
         if (!originalName) errors.push("Пустое название");
         if (!innValue) errors.push("Отсутствует ИНН");
 
         if (errors.length > 0) {
-            rejectedRows.push({ 
-                rowNum, 
-                reason: errors.join(", "), 
-                rowData: row 
-            });
+            rejectedRows.push({ rowNum, reason: errors.join(", "), rowData: row });
             return;
         }
 
-        // 3. Очистка Названия (Кавычки + CAPS)
         const quoteRegex = /["'«»„“]/g;
         let cleanName = originalName.replace(quoteRegex, '').toUpperCase();
-
-        // 4. Очистка ИНН (на случай, если там затесались пробелы или кавычки внутри)
         let cleanInn = innValue.replace(/["'«»„“\s]/g, '');
 
-        // Фиксируем изменения для лога
         if (cleanName !== originalName || cleanInn !== innValue) {
             modifiedRows.push({ 
                 rowNum, 
@@ -101,7 +86,6 @@ function processData(data) {
             row[colNameIndex] = cleanName;
             row[colInnIndex] = cleanInn;
         }
-
         validRowsForExport.push(row);
     });
 
@@ -121,6 +105,9 @@ function renderUI(headers, successCount) {
 
     document.getElementById('showModifiedBtn').style.display = modifiedRows.length > 0 ? 'inline-block' : 'none';
     document.getElementById('showRejectedBtn').style.display = rejectedRows.length > 0 ? 'inline-block' : 'none';
+
+    // Сброс состояния табов при новой загрузке
+    hideAllDetails();
 
     fillTable('modified-table-container', headers, modifiedRows, true);
     fillTable('rejected-table-container', headers, rejectedRows, false);
@@ -145,23 +132,42 @@ function fillTable(containerId, headers, data, isModified) {
     container.innerHTML = html + `</tbody></table>`;
 }
 
-// Управление кнопками
-document.getElementById('showModifiedBtn').onclick = function() {
-    this.classList.toggle('active');
-    const el = document.getElementById('modified-details');
-    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+// --- ЛОГИКА ТАБОВ ---
+
+const modBtn = document.getElementById('showModifiedBtn');
+const rejBtn = document.getElementById('showRejectedBtn');
+const modBox = document.getElementById('modified-details');
+const rejBox = document.getElementById('rejected-details');
+
+function hideAllDetails() {
+    modBox.style.display = 'none';
+    rejBox.style.display = 'none';
+    modBtn.classList.remove('active');
+    rejBtn.classList.remove('active');
+}
+
+modBtn.onclick = function() {
+    const isActive = this.classList.contains('active');
+    hideAllDetails();
+    if (!isActive) {
+        modBox.style.display = 'block';
+        this.classList.add('active');
+    }
 };
 
-document.getElementById('showRejectedBtn').onclick = function() {
-    this.classList.toggle('active');
-    const el = document.getElementById('rejected-details');
-    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+rejBtn.onclick = function() {
+    const isActive = this.classList.contains('active');
+    hideAllDetails();
+    if (!isActive) {
+        rejBox.style.display = 'block';
+        this.classList.add('active');
+    }
 };
 
 downloadBtn.onclick = () => {
     const blob = new Blob(["\ufeff", csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `data_export_${new Date().getTime()}.csv`;
+    link.download = `export_${new Date().getTime()}.csv`;
     link.click();
 };
