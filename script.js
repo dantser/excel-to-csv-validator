@@ -48,7 +48,7 @@ function handleFile(file) {
 function validateAndConvert(data) {
     const headers = data[0];
     const rows = data.slice(1);
-    const campaignColName = "Название кампании";
+    const campaignColName = "Название компании";
     const campaignColIndex = headers.indexOf(campaignColName);
 
     if (campaignColIndex === -1) {
