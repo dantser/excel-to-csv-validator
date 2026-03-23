@@ -3,19 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Excel to CSV & Validator</title>
+    <title>Campaign Validator Pro</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <h1>Excel ➔ CSV Converter</h1>
-        <p>Выберите файл для проверки и конвертации</p>
-        
-        <input type="file" id="fileInput" accept=".xlsx, .xls" />
-        
-        <div id="report" class="report-area"></div>
-        
-        <button id="downloadBtn" style="display: none;">Скачать CSV</button>
+    <div class="app-container">
+        <header>
+            <h1>Campaign Validator <span>Pro</span></h1>
+            <p>Преобразование Excel в CSV с умной очисткой данных</p>
+        </header>
+
+        <main class="card">
+            <div id="dropzone" class="dropzone">
+                <div class="dz-content">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                    </svg>
+                    <p>Перетащите Excel-файл сюда или</p>
+                    <label for="fileInput" class="btn-secondary">Выберите файл</label>
+                    <input type="file" id="fileInput" accept=".xlsx, .xls" hidden />
+                </div>
+            </div>
+
+            <div id="report-container" class="report-container" style="display: none;">
+                <div id="stats-summary" class="stats-grid"></div>
+                <div id="report-details"></div>
+                
+                <div class="actions">
+                    <button id="downloadBtn" class="btn-primary">
+                        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                        </svg>
+                        Скачать очищенный CSV
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>© 2024 • Работает локально в браузере • Конфиденциально</p>
+        </footer>
     </div>
 
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
