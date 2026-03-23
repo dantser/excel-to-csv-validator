@@ -4,150 +4,142 @@ const downloadBtn = document.getElementById('downloadBtn');
 const reportContainer = document.getElementById('report-container');
 
 let csvContent = ""; 
+let modifiedRows = []; // Список измененных
+let rejectedRows = []; // Список удаленных
 
-// --- Настройка Drag-and-Drop ---
-['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-    dropzone.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }, false);
-});
-['dragenter', 'dragover'].forEach(eventName => {
-    dropzone.addEventListener(eventName, () => dropzone.classList.add('dragover'), false);
-});
-['dragleave', 'drop'].forEach(eventName => {
-    dropzone.addEventListener(eventName, () => dropzone.classList.remove('dragover'), false);
+// --- Инициализация ---
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => {
+    dropzone.addEventListener(e, (ev) => { ev.preventDefault(); ev.stopPropagation(); });
 });
 
-dropzone.addEventListener('drop', e => {
+dropzone.addEventListener('dragover', () => dropzone.classList.add('dragover'));
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', (e) => {
+    dropzone.classList.remove('dragover');
     const file = e.dataTransfer.files[0];
     if (file) handleFile(file);
 });
 
-fileInput.addEventListener('change', e => {
+fileInput.addEventListener('change', (e) => {
     if (e.target.files[0]) handleFile(e.target.files[0]);
 });
 
 function handleFile(file) {
-    if (!file.name.match(/\.(xlsx|xls)$/)) {
-        alert("Пожалуйста, выберите файл Excel");
-        return;
-    }
+    if (!file.name.match(/\.(xlsx|xls)$/)) { alert("Нужен Excel файл!"); return; }
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = (e) => {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
-        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-        validateAndConvert(jsonData);
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+        processData(json);
     };
     reader.readAsArrayBuffer(file);
 }
 
-// --- Основная логика ---
-function validateAndConvert(data) {
-    if (data.length === 0) return;
-
+// --- Обработка ---
+function processData(data) {
     const headers = data[0];
     const rows = data.slice(1);
-    
-    // Ищем колонку "Название компании"
-    const targetHeader = "название компании";
-    const colIndex = headers.findIndex(h => String(h || "").trim().toLowerCase() === targetHeader);
+    const colIndex = headers.findIndex(h => String(h || "").trim().toLowerCase() === "название компании");
 
-    if (colIndex === -1) {
-        alert(`Ошибка: Колонка "Название компании" не найдена!`);
-        return;
-    }
+    if (colIndex === -1) { alert("Колонка 'Название компании' не найдена!"); return; }
 
-    let validRows = [headers];
-    let rejectedData = [];
-    let modifiedCount = 0;
+    let validRowsForExport = [headers];
+    modifiedRows = [];
+    rejectedRows = [];
 
     rows.forEach((originalRow, index) => {
         const rowNum = index + 2;
+        // 1. Глобальный Trim
+        let row = originalRow.map(c => String(c || "").trim());
 
-        // 1. Глобальный Trim (чистим пробелы во всей строке)
-        let row = originalRow.map(cell => (cell !== null && cell !== undefined) ? String(cell).trim() : "");
+        if (row.every(c => c === "")) return; // Пропуск пустых
 
-        // 2. Игнорируем полностью пустые строки
-        if (row.every(cell => cell === "")) return;
+        const originalName = row[colIndex];
 
-        let companyValue = row[colIndex];
-
-        // 3. Проверка на обязательность
-        if (!companyValue) {
-            rejectedData.push({ rowNum, reason: "Пустое название", rowData: row });
+        // 2. Валидация на пустоту
+        if (!originalName) {
+            rejectedRows.push({ rowNum, reason: "Пустое название", rowData: row });
             return;
         }
 
-        // 4. Очистка и принудительный CAPS LOCK
-        const quoteRegex = /["'«»„“]/g;
-        
-        // Удаляем кавычки и переводим В ВЕРХНИЙ РЕГИСТР
-        let cleanName = companyValue.replace(quoteRegex, '').toUpperCase();
+        // 3. CAPS + Убираем кавычки
+        let cleanName = originalName.replace(/["'«»„“]/g, '').toUpperCase();
 
-        // Проверяем, изменилось ли что-то (для статистики)
-        if (cleanName !== companyValue) {
+        if (cleanName !== originalName) {
+            modifiedRows.push({ rowNum, oldVal: originalName, newVal: cleanName, rowData: [...row] });
             row[colIndex] = cleanName;
-            modifiedCount++;
         }
 
-        // Если после всех чисток строка стала пустой (например, были одни кавычки)
-        if (!cleanName) {
-            rejectedData.push({ rowNum, reason: "Некорректное название", rowData: row });
-            return;
-        }
-
-        validRows.push(row);
+        validRowsForExport.push(row);
     });
 
-    displayResults(headers, rejectedData, validRows.length - 1, modifiedCount);
-
-    const ws = XLSX.utils.aoa_to_sheet(validRows);
-    csvContent = XLSX.utils.sheet_to_csv(ws);
+    renderUI(headers, validRowsForExport.length - 1);
     
-    reportContainer.style.display = 'block';
-    reportContainer.scrollIntoView({ behavior: 'smooth' });
-    downloadBtn.style.display = validRows.length > 1 ? 'inline-flex' : 'none';
+    // Готовим CSV
+    const ws = XLSX.utils.aoa_to_sheet(validRowsForExport);
+    csvContent = XLSX.utils.sheet_to_csv(ws);
 }
 
-function displayResults(headers, rejected, success, modified) {
-    const statsGrid = document.getElementById('stats-summary');
-    statsGrid.innerHTML = `
-        <div class="stat-card">
-            <div class="stat-label">В итоговом CSV</div>
-            <div class="stat-value" style="color: var(--success)">${success}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Приведено к CAPS/Без кавычек</div>
-            <div class="stat-value" style="color: var(--warning)">${modified}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Ошибки (удалены)</div>
-            <div class="stat-value" style="color: var(--danger)">${rejected.length}</div>
-        </div>
+function renderUI(headers, successCount) {
+    reportContainer.style.display = 'block';
+    
+    // Статистика
+    const stats = document.getElementById('stats-summary');
+    stats.innerHTML = `
+        <div class="stat-card"><div class="stat-label">В итоге</div><div class="stat-value" style="color:var(--success)">${successCount}</div></div>
+        <div class="stat-card"><div class="stat-label">Изменено</div><div class="stat-value" style="color:var(--warning)">${modifiedRows.length}</div></div>
+        <div class="stat-card"><div class="stat-label">Удалено</div><div class="stat-value" style="color:var(--danger)">${rejectedRows.length}</div></div>
     `;
 
-    const details = document.getElementById('report-details');
-    if (rejected.length > 0) {
-        let html = `<h4>Детали исключенных строк:</h4><div class="table-wrapper"><table><thead><tr><th>Стр.</th><th>Причина</th>`;
-        headers.forEach(h => html += `<th>${h}</th>`);
-        html += `</tr></thead><tbody>`;
-        rejected.forEach(item => {
-            html += `<tr><td>${item.rowNum}</td><td><span class="reason-badge">${item.reason}</span></td>`;
-            item.rowData.forEach(cell => html += `<td>${cell}</td>`);
-            html += `</tr>`;
-        });
-        html += `</tbody></table></div>`;
-        details.innerHTML = html;
-    } else {
-        details.innerHTML = `<p style="color: var(--success); text-align: center; padding: 20px;">✅ Проверка пройдена. Все названия теперь в ВЕРХНЕМ РЕГИСТРЕ.</p>`;
-    }
+    // Кнопки управления
+    document.getElementById('showModifiedBtn').style.display = modifiedRows.length > 0 ? 'inline-block' : 'none';
+    document.getElementById('showRejectedBtn').style.display = rejectedRows.length > 0 ? 'inline-block' : 'none';
+
+    // Рендерим таблицы
+    fillTable('modified-table-container', headers, modifiedRows, true);
+    fillTable('rejected-table-container', headers, rejectedRows, false);
+
+    reportContainer.scrollIntoView({ behavior: 'smooth' });
 }
 
-downloadBtn.addEventListener('click', () => {
+function fillTable(containerId, headers, data, isModified) {
+    const container = document.getElementById(containerId);
+    let html = `<table><thead><tr><th>Стр.</th><th>${isModified ? 'Было ➔ Стало' : 'Причина'}</th>`;
+    headers.forEach(h => html += `<th>${h}</th>`);
+    html += `</tr></thead><tbody>`;
+
+    data.forEach(item => {
+        html += `<tr><td>${item.rowNum}</td>`;
+        if (isModified) {
+            html += `<td><span class="old-val">${item.oldVal}</span> <span class="new-val">➔ ${item.newVal}</span></td>`;
+        } else {
+            html += `<td><span class="reason-badge">${item.reason}</span></td>`;
+        }
+        item.rowData.forEach(c => html += `<td>${c}</td>`);
+        html += `</tr>`;
+    });
+    container.innerHTML = html + `</tbody></table>`;
+}
+
+// Кнопки переключения
+document.getElementById('showModifiedBtn').onclick = function() {
+    this.classList.toggle('active');
+    const el = document.getElementById('modified-details');
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+};
+
+document.getElementById('showRejectedBtn').onclick = function() {
+    this.classList.toggle('active');
+    const el = document.getElementById('rejected-details');
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+};
+
+downloadBtn.onclick = () => {
     const blob = new Blob(["\ufeff", csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.href = url;
-    link.download = `EXPORT_CAPS_${new Date().toISOString().slice(0,10)}.csv`;
+    link.href = URL.createObjectURL(blob);
+    link.download = `cleaned_caps_data.csv`;
     link.click();
-});
+};
