@@ -10,61 +10,89 @@ function handleFile(e) {
     reader.onload = function(e) {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
-
-        // Берем первый лист
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
-
-        // Превращаем в массив массивов (строки и колонки)
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-
+        
         validateAndConvert(jsonData);
     };
     reader.readAsArrayBuffer(file);
 }
 
 function validateAndConvert(data) {
+    const headers = data[0];
+    const rows = data.slice(1);
     const reportArea = document.getElementById('report');
-    let errors = [];
-    let validRows = [];
+    const campaignColName = "Название кампании";
+    const campaignColIndex = headers.indexOf(campaignColName);
 
-    data.forEach((row, index) => {
-        // Проверяем, если вся строка пустая
-        const isEmpty = row.every(cell => cell.toString().trim() === "");
+    if (campaignColIndex === -1) {
+        reportArea.innerHTML = `<p class="error">❌ Ошибка: Колонка "${campaignColName}" не найдена!</p>`;
+        return;
+    }
+
+    let validRows = [headers];
+    let rejectedData = []; // Сюда сохраняем причину + саму строку
+
+    rows.forEach((row, index) => {
+        const rowNum = index + 2;
+        const isCompletelyEmpty = row.every(cell => String(cell).trim() === "");
         
-        if (isEmpty) {
-            errors.push(`Строка ${index + 1}: Полностью пустая`);
+        if (isCompletelyEmpty) return; // Пустые строки просто игнорируем
+
+        const campaignValue = String(row[campaignColIndex] || "").trim();
+        let errorReason = "";
+
+        // Проверка 1: Наличие названия
+        if (!campaignValue) {
+            errorReason = "Отсутствует название кампании";
+        } 
+        // Проверка 2: Кавычки
+        else if (campaignValue.includes('"') || campaignValue.includes("'")) {
+            errorReason = "Обнаружены кавычки";
+        }
+
+        if (errorReason) {
+            rejectedData.push({ rowNum, reason: errorReason, rowData: row });
         } else {
-            // Проверяем на наличие пустых ячеек внутри строки
-            const hasEmptyCell = row.some(cell => cell.toString().trim() === "");
-            if (hasEmptyCell) {
-                errors.push(`Строка ${index + 1}: Есть незаполненные поля`);
-            }
             validRows.push(row);
         }
     });
 
-    // Вывод отчета
-    if (errors.length > 0) {
-        reportArea.innerHTML = "<h3>Результаты проверки:</h3><ul>" + 
-            errors.map(err => `<li>⚠️ ${err}</li>`).join('') + "</ul>";
-    } else {
-        reportArea.innerHTML = "<p style='color: green;'>✅ Все строки заполнены корректно!</p>";
-    }
+    renderDetailedReport(headers, rejectedData, validRows.length - 1);
 
-    // Создаем CSV
     const ws = XLSX.utils.aoa_to_sheet(validRows);
     csvContent = XLSX.utils.sheet_to_csv(ws);
-    
-    downloadBtn.style.display = 'block';
+    downloadBtn.style.display = validRows.length > 1 ? 'block' : 'none';
 }
 
-downloadBtn.addEventListener('click', () => {
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute("download", "converted_data.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-});
+function renderDetailedReport(headers, rejectedData, successCount) {
+    const reportArea = document.getElementById('report');
+    let html = `<h3>Статистика:</h3>`;
+    html += `<p>✅ Успешно: <strong>${successCount}</strong></p>`;
+
+    if (rejectedData.length > 0) {
+        html += `<p style="color: #d93025;">❌ Исключено строк: <strong>${rejectedData.length}</strong></p>`;
+        html += `<div class="table-wrapper"><table><thead><tr><th>Стр.</th><th>Причина</th>`;
+        
+        // Добавляем заголовки из файла в таблицу отчета
+        headers.forEach(h => html += `<th>${h}</th>`);
+        html += `</tr></thead><tbody>`;
+
+        rejectedData.forEach(item => {
+            html += `<tr>
+                <td>${item.rowNum}</td>
+                <td class="reason-cell">${item.reason}</td>`;
+            item.rowData.forEach(cell => {
+                html += `<td>${cell}</td>`;
+            });
+            html += `</tr>`;
+        });
+
+        html += `</tbody></table></div>`;
+    } else {
+        html += `<p style="color: green;">Все строки прошли проверку!</p>`;
+    }
+    
+    reportArea.innerHTML = html;
+}
