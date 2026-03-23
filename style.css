@@ -1,8 +1,42 @@
-body { font-family: sans-serif; background: #f4f7f6; display: flex; justify-content: center; padding-top: 50px; }
-.container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
-h1 { color: #333; font-size: 1.5rem; }
-input { margin: 20px 0; }
-.report-area { margin-top: 20px; font-size: 0.9rem; max-height: 200px; overflow-y: auto; border-top: 1px solid #eee; padding-top: 10px; }
-button { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; width: 100%; margin-top: 20px; }
-button:hover { background: #218838; }
-li { color: #856404; margin-bottom: 5px; }
+/* Основной контейнер */
+.card { 
+    background: white; 
+    padding: 30px; 
+    border-radius: 12px; 
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1); 
+    width: 90%; /* Сделаем шире для таблицы */
+    max-width: 1000px; 
+}
+
+/* Обертка для таблицы с прокруткой */
+.table-wrapper {
+    overflow-x: auto;
+    margin-top: 15px;
+    border: 1px solid #eee;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+    white-space: nowrap; /* Чтобы текст не переносился и таблица была читаемой */
+}
+
+th {
+    background-color: #f8f9fa;
+    position: sticky;
+    top: 0;
+}
+
+tr:hover { background-color: #fff4f4; } /* Подсветка проблемной строки при наведении */
+
+.reason-cell {
+    color: #d93025;
+    font-weight: bold;
+}
