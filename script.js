@@ -41,11 +41,20 @@ function processData(data) {
     const headers = data[0];
     const rows = data.slice(1);
 
-    const colNameIdx = headers.findIndex(h => String(h || "").trim().toLowerCase() === "название компании");
-    const colInnIdx = headers.findIndex(h => String(h || "").trim().toLowerCase() === "инн");
+    const findIdx = (name) => headers.findIndex(h => String(h || "").trim().toLowerCase() === name.toLowerCase());
 
-    if (colNameIdx === -1 || colInnIdx === -1) {
-        alert("Колонки 'Название компании' и 'ИНН' обязательны!");
+    const colNameIdx = findIdx("Название компании");
+    const colInnIdx = findIdx("ИНН");
+    const colPhoneIdx = findIdx("Контактный телефон");
+    const colContactIdx = findIdx("Имя контакта");
+
+    if (colNameIdx === -1 || colInnIdx === -1 || colPhoneIdx === -1 || colContactIdx === -1) {
+        let missing = [];
+        if (colNameIdx === -1) missing.push('"Название компании"');
+        if (colInnIdx === -1) missing.push('"ИНН"');
+        if (colPhoneIdx === -1) missing.push('"Контактный телефон"');
+        if (colContactIdx === -1) missing.push('"Имя контакта"');
+        alert(`Ошибка: В файле не найдены колонки: ${missing.join(', ')}`);
         return;
     }
 
@@ -58,12 +67,20 @@ function processData(data) {
         let row = originalRow.map(c => String(c || "").trim());
         if (row.every(c => c === "")) return;
 
-        const originalName = row[colNameIdx];
-        const innValue = row[colInnIdx];
+        const nameVal = row[colNameIdx];
+        const innVal = row[colInnIdx];
+        const phoneVal = row[colPhoneIdx];
+        const contactVal = row[colContactIdx];
 
+        // ЛОГИКА ВАЛИДАЦИИ
         let errors = [];
-        if (!originalName) errors.push("Пустое название");
-        if (!innValue) errors.push("Отсутствует ИНН");
+        if (!nameVal) errors.push("Пустое название");
+        if (!innVal) errors.push("Нет ИНН");
+        
+        // "Если что-то одно из этого есть (телефон ИЛИ имя), то ок"
+        if (!phoneVal && !contactVal) {
+            errors.push("Нет контактных данных (телефон или имя)");
+        }
 
         if (errors.length > 0) {
             rejectedRows.push({ rowNum, reason: errors.join(", "), rowData: row });
@@ -71,11 +88,11 @@ function processData(data) {
         }
 
         const quoteRegex = /["'«»„“]/g;
-        let cleanName = originalName.replace(quoteRegex, '').toUpperCase();
-        let cleanInn = innValue.replace(/["'«»„“\s]/g, '');
+        let cleanName = nameVal.replace(quoteRegex, '').toUpperCase();
+        let cleanInn = innVal.replace(/["'«»„“\s]/g, '');
 
-        if (cleanName !== originalName || cleanInn !== innValue) {
-            modifiedRows.push({ rowNum, oldVal: originalName, newVal: cleanName, rowData: [...row] });
+        if (cleanName !== nameVal || cleanInn !== innVal) {
+            modifiedRows.push({ rowNum, oldVal: nameVal, newVal: cleanName, rowData: [...row] });
             row[colNameIdx] = cleanName;
             row[colInnIdx] = cleanInn;
         }
@@ -83,12 +100,9 @@ function processData(data) {
     });
 
     renderUI(headers, validRows.length - 1);
-    
-    // Основной CSV
     const ws = XLSX.utils.aoa_to_sheet(validRows);
     csvContent = XLSX.utils.sheet_to_csv(ws);
 
-    // CSV ошибок
     if (rejectedRows.length > 0) {
         const rejData = rejectedRows.map(r => {
             let obj = { "Номер строки": r.rowNum, "Причина": r.reason };
@@ -106,10 +120,8 @@ function renderUI(headers, successCount) {
         <div class="stat-card"><div class="stat-label">Изменено</div><div class="stat-value" style="color:var(--warning)">${modifiedRows.length}</div></div>
         <div class="stat-card"><div class="stat-label">Удалено</div><div class="stat-value" style="color:var(--danger)">${rejectedRows.length}</div></div>
     `;
-
     document.getElementById('showModifiedBtn').style.display = modifiedRows.length > 0 ? 'inline-block' : 'none';
     document.getElementById('showRejectedBtn').style.display = rejectedRows.length > 0 ? 'inline-block' : 'none';
-
     resetTabs();
     fillTable('modified-table-container', headers, modifiedRows, true);
     fillTable('rejected-table-container', headers, rejectedRows, false);
@@ -129,16 +141,12 @@ function fillTable(containerId, headers, data, isMod) {
     container.innerHTML = html + `</tbody></table>`;
 }
 
-// --- Логика табов ---
 const mBtn = document.getElementById('showModifiedBtn'), rBtn = document.getElementById('showRejectedBtn');
 const mBox = document.getElementById('modified-details'), rBox = document.getElementById('rejected-details');
-
 function resetTabs() { mBox.style.display = rBox.style.display = 'none'; mBtn.classList.remove('active'); rBtn.classList.remove('active'); }
-
 mBtn.onclick = () => { const act = mBtn.classList.contains('active'); resetTabs(); if(!act) { mBox.style.display = 'block'; mBtn.classList.add('active'); }};
 rBtn.onclick = () => { const act = rBtn.classList.contains('active'); resetTabs(); if(!act) { rBox.style.display = 'block'; rBtn.classList.add('active'); }};
 
-// --- Скачивание ---
 function download(content, name) {
     const blob = new Blob(["\ufeff", content], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
@@ -146,6 +154,5 @@ function download(content, name) {
     link.download = name;
     link.click();
 }
-
 downloadBtn.onclick = () => download(csvContent, 'cleaned_data.csv');
 document.getElementById('downloadRejectedBtn').onclick = () => download(rejectedCsvContent, 'rejected_rows.csv');
