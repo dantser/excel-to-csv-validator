@@ -1,3 +1,4 @@
+/* Основные переменные */
 :root {
     --primary: #4f46e5;
     --primary-hover: #4338ca;
@@ -21,6 +22,7 @@ body {
     min-height: 100vh;
 }
 
+/* Контейнер: компактный и центрированный */
 .app-container { 
     width: 100%; 
     max-width: 1000px; 
@@ -37,10 +39,9 @@ header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 5px; }
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     padding: 25px;
-    height: auto; /* Позволяем карточке расти вниз */
 }
 
-/* Зона загрузки */
+/* Зона загрузки (Dropzone) */
 .dropzone {
     border: 2px dashed var(--border);
     border-radius: 10px;
@@ -48,8 +49,32 @@ header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 5px; }
     text-align: center;
     background: #fafafa;
     margin-bottom: 20px;
+    transition: 0.2s;
 }
 .dropzone.dragover { border-color: var(--primary); background: #eef2ff; }
+
+.icon { width: 36px; height: 36px; color: var(--text-muted); margin-bottom: 10px; display: inline-block; }
+
+/* КНОПКА ВЫБОРА ФАЙЛА (btn-secondary) */
+.btn-secondary { 
+    display: inline-block; /* Обязательно, чтобы label работал как кнопка */
+    background: white; 
+    border: 1px solid var(--border); 
+    padding: 10px 22px; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-main);
+    transition: all 0.2s ease;
+    margin-top: 10px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.btn-secondary:hover { 
+    background: #f9fafb; 
+    border-color: var(--primary);
+    color: var(--primary);
+}
 
 /* Статистика */
 .stats-grid { 
@@ -77,7 +102,7 @@ header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 5px; }
     font-size: 1.1rem; 
 }
 
-/* Кнопки */
+/* ГЛАВНАЯ КНОПКА СКАЧАТЬ */
 .btn-primary { 
     background: var(--primary); 
     color: white; 
@@ -93,9 +118,11 @@ header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 5px; }
     justify-content: center;
     gap: 8px;
     margin-bottom: 15px; 
+    transition: background 0.2s;
 }
 .btn-primary:hover { background: var(--primary-hover); }
 
+/* Кнопки "Показать изменения" */
 .btn-outline { 
     background: white; 
     border: 1.5px solid var(--primary); 
@@ -116,7 +143,7 @@ header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 5px; }
     margin-bottom: 20px; 
 }
 
-/* Секция таблиц (БЕЗ макс-высоты) */
+/* Таблицы (Бесконечный скролл) */
 .details-section { 
     margin-top: 25px; 
     border-top: 1px solid #f3f4f6; 
@@ -126,7 +153,7 @@ header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 5px; }
 
 .table-wrapper { 
     width: 100%;
-    overflow-x: auto; /* Оставляем только горизонтальный скролл на случай очень многих колонок */
+    overflow-x: auto; 
     border: 1px solid var(--border); 
     border-radius: 8px;
 }
@@ -136,7 +163,7 @@ table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 th { 
     background: #f9fafb; 
     position: sticky; 
-    top: -1px; /* Прилипает к верху экрана при прокрутке body */
+    top: -1px; /* Прилипает при скролле */
     padding: 12px; 
     text-align: left; 
     border-bottom: 2px solid var(--border); 
@@ -144,7 +171,7 @@ th {
 }
 td { padding: 12px; border-bottom: 1px solid var(--border); white-space: nowrap; background: #fff; }
 
-/* Было -> Стало: ЧЕТКО, ЯРКО, НЕПРОЗРАЧНО */
+/* ЛОГ ИЗМЕНЕНИЙ (НЕПРОЗРАЧНО) */
 .old-val { 
     color: #b91c1c; 
     text-decoration: line-through; 
@@ -152,7 +179,7 @@ td { padding: 12px; border-bottom: 1px solid var(--border); white-space: nowrap;
     background: #fee2e2; 
     padding: 2px 6px; 
     border-radius: 4px;
-    opacity: 1 !important;
+    opacity: 1 !important; /* Гарантия непрозрачности */
     display: inline-block;
 }
 .new-val { 
@@ -160,7 +187,7 @@ td { padding: 12px; border-bottom: 1px solid var(--border); white-space: nowrap;
     font-weight: 700; 
     margin-left: 10px;
     background: #dcfce7;
-    padding: 2px 6px;
+    padding: 2px 6px; 
     border-radius: 4px;
     display: inline-block;
 }
@@ -174,7 +201,12 @@ td { padding: 12px; border-bottom: 1px solid var(--border); white-space: nowrap;
     font-size: 0.75rem; 
 }
 
-.icon { width: 32px; height: 32px; color: var(--text-muted); margin-bottom: 10px; }
 .icon-sm { width: 20px; height: 20px; }
 
 footer { text-align: center; margin-top: 30px; color: var(--text-muted); font-size: 0.8rem; padding-bottom: 20px; }
+
+/* Адаптивность */
+@media (max-width: 600px) {
+    .stats-grid { grid-template-columns: 1fr; }
+    .view-controls { flex-direction: column; align-items: stretch; }
+}
