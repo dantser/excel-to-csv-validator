@@ -134,7 +134,11 @@ header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 5px; }
     font-size: 0.85rem;
     transition: 0.2s;
 }
-.btn-outline.active { background: var(--primary); color: white; }
+.btn-outline.active {
+    background: var(--primary); /* Тот самый синий цвет */
+    color: white;
+    border-color: var(--primary);
+}
 
 .view-controls { 
     display: flex; 
