@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Campaign Validator Pro</title>
+    <title>Company Data Validator Pro</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="app-container">
         <header>
-            <h1>Local Validator <span>Pro</span></h1>
-            <p>Преобразование Excel в CSV с умной очисткой данных</p>
+            <h1>Company Validator <span>CAPS</span></h1>
+            <p>Конвертация Excel в CSV с принудительным верхним регистром</p>
         </header>
 
         <main class="card">
@@ -20,15 +20,34 @@
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
                     </svg>
-                    <p>Перетащите Excel-файл сюда или</p>
-                    <label for="fileInput" class="btn-secondary">Выберите файл</label>
+                    <p>Перетащите файл или</p>
+                    <label for="fileInput" class="btn-secondary">Выберите Excel</label>
                     <input type="file" id="fileInput" accept=".xlsx, .xls" hidden />
                 </div>
             </div>
 
             <div id="report-container" class="report-container" style="display: none;">
-                <div id="stats-summary" class="stats-grid"></div>
-                <div id="report-details"></div>
+                <div id="stats-summary" class="stats-grid">
+                    </div>
+
+                <div class="status-message">
+                    <span class="check-icon">✅</span> Проверка завершена. Все названия приведены к CAPS.
+                </div>
+
+                <div class="view-controls">
+                    <button id="showModifiedBtn" class="btn-outline">Показать изменения</button>
+                    <button id="showRejectedBtn" class="btn-outline">Показать удаленные</button>
+                </div>
+
+                <div id="modified-details" class="details-section" style="display: none;">
+                    <h4>📝 Лог исправлений (Кавычки / Регистр):</h4>
+                    <div class="table-wrapper" id="modified-table-container"></div>
+                </div>
+
+                <div id="rejected-details" class="details-section" style="display: none;">
+                    <h4>❌ Удаленные строки (Ошибки):</h4>
+                    <div class="table-wrapper" id="rejected-table-container"></div>
+                </div>
                 
                 <div class="actions">
                     <button id="downloadBtn" class="btn-primary">
@@ -42,7 +61,7 @@
         </main>
 
         <footer>
-            <p>© 2024 • Работает локально в браузере • Конфиденциально</p>
+            <p>© 2026 • Обработка данных происходит только в вашем браузере</p>
         </footer>
     </div>
 
