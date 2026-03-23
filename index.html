@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Company Data Validator Pro</title>
+    <title>Excel Validator and Converter</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="app-container">
         <header>
-            <h1>Company Validator <span>CAPS</span></h1>
-            <p>Конвертация Excel в CSV с принудительным верхним регистром</p>
+            <h1>Excel Validator <span>and Converter</span></h1>
+            <p>Преобразование Excel в CSV и проверка данных</p>
         </header>
 
         <main class="card">
@@ -27,11 +27,10 @@
             </div>
 
             <div id="report-container" class="report-container" style="display: none;">
-                <div id="stats-summary" class="stats-grid">
-                    </div>
+                <div id="stats-summary" class="stats-grid"></div>
 
                 <div class="status-message">
-                    <span class="check-icon">✅</span> Проверка завершена. Все названия приведены к CAPS.
+                    ✅ Проверка завершена
                 </div>
 
                 <div class="view-controls">
@@ -40,12 +39,12 @@
                 </div>
 
                 <div id="modified-details" class="details-section" style="display: none;">
-                    <h4>📝 Лог исправлений (Кавычки / Регистр):</h4>
+                    <h4>📝 Лог исправлений:</h4>
                     <div class="table-wrapper" id="modified-table-container"></div>
                 </div>
 
                 <div id="rejected-details" class="details-section" style="display: none;">
-                    <h4>❌ Удаленные строки (Ошибки):</h4>
+                    <h4>❌ Удаленные строки:</h4>
                     <div class="table-wrapper" id="rejected-table-container"></div>
                 </div>
                 
@@ -54,14 +53,14 @@
                         <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
                         </svg>
-                        Скачать очищенный CSV
+                        Скачать CSV
                     </button>
                 </div>
             </div>
         </main>
 
         <footer>
-            <p>© 2026 • Обработка данных происходит только в вашем браузере</p>
+            <p>© 2026 • Обработка данных в браузере</p>
         </footer>
     </div>
 
