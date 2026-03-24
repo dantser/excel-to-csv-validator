@@ -25,42 +25,41 @@ fileInput.addEventListener('change', (e) => {
 });
 
 function handleFile(file) {
-    if (!file.name.match(/\.(xlsx|xls)$/)) { alert("Нужен Excel файл!"); return; }
+    if (!file.name.match(/\.(xlsx|xls|csv)$/)) { alert("Нужен Excel файл!"); return; }
     const reader = new FileReader();
     reader.onload = (e) => {
         const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array', cellNF: true, cellText: true });
+        // Включаем cellDates: true, чтобы библиотека сама распознала даты
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
-        // УМНЫЙ ПАРСЕР ДАТ
+        // --- УМНАЯ ОБРАБОТКА ДАТ ---
         for (let z in sheet) {
             if (z[0] === '!') continue; 
             const cell = sheet[z];
-            
-            // Если ячейка содержит число (n) и имеет формат даты (z)
-            if (cell.t === 'n' && cell.z && /m|d|y/.test(cell.z.toLowerCase())) {
-                try {
-                    // Используем парсер SSF для извлечения компонентов даты из числа
-                    const d = XLSX.SSF.parse_date_code(cell.v);
-                    if (d) {
-                        // Собираем строку DD.MM.YYYY вручную
-                        const day = String(d.d).padStart(2, '0');
-                        const month = String(d.m).padStart(2, '0');
-                        const year = d.y;
-                        cell.v = `${day}.${month}.${year}`;
-                        cell.t = 's'; // Меняем тип на строку (string)
-                    }
-                } catch (err) {
-                    // Если дата совсем битая, оставляем как есть или пустую строку
-                    cell.v = cell.w || "";
-                }
+
+            // 1. Если это объект даты (JS Date)
+            if (cell.v instanceof Date) {
+                const d = cell.v;
+                // Форматируем в ДД.ММ.ГГГГ (с учетом часового пояса)
+                const day = String(d.getDate()).padStart(2, '0');
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const year = d.getFullYear();
+                cell.v = `${day}.${month}.${year}`;
+                cell.t = 's'; 
+            } 
+            // 2. Если дата пришла строкой типа "2026-03-30" (как в твоем примере)
+            else if (typeof cell.v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(cell.v)) {
+                const parts = cell.v.split('T')[0].split('-');
+                cell.v = `${parts[2]}.${parts[1]}.${parts[0]}`;
+                cell.t = 's';
             }
         }
 
         const json = XLSX.utils.sheet_to_json(sheet, { 
             header: 1, 
             defval: "",
-            raw: true // Оставляем ИНН и телефоны "чистыми" числами
+            raw: true // Важно для ИНН и Телефонов
         });
         processData(json);
     };
@@ -103,16 +102,18 @@ function processData(data) {
         const phoneVal = row[colPhoneIdx];
         const contactVal = row[colContactIdx];
 
+        // ВАЛИДАЦИЯ
         let errors = [];
         if (!nameVal) errors.push("Пустое название");
         if (!innVal) errors.push("Нет ИНН");
-        if (!phoneVal && !contactVal) errors.push("Нет контактных данных");
+        if (!phoneVal && !contactVal) errors.push("Нет контактных данных (тел/имя)");
 
         if (errors.length > 0) {
             rejectedRows.push({ rowNum, reason: errors.join(", "), rowData: row });
             return;
         }
 
+        // КЛИНИНГ
         const quoteRegex = /["'«»„“]/g;
         let cleanName = nameVal.replace(quoteRegex, '').toUpperCase();
         let cleanInn = innVal.replace(/["'«»„“\s]/g, '');
@@ -127,7 +128,7 @@ function processData(data) {
 
     renderUI(headers, validRows.length - 1);
     
-    // Экспорт с разделителем ";"
+    // Формируем CSV с разделителем ";"
     const ws = XLSX.utils.aoa_to_sheet(validRows);
     csvContent = XLSX.utils.sheet_to_csv(ws, { FS: ";" });
 
@@ -170,12 +171,14 @@ function fillTable(containerId, headers, data, isMod) {
     container.innerHTML = html + `</tbody></table>`;
 }
 
+// Управление табами
 const mBtn = document.getElementById('showModifiedBtn'), rBtn = document.getElementById('showRejectedBtn');
 const mBox = document.getElementById('modified-details'), rBox = document.getElementById('rejected-details');
 function resetTabs() { mBox.style.display = rBox.style.display = 'none'; mBtn.classList.remove('active'); rBtn.classList.remove('active'); }
 mBtn.onclick = () => { const act = mBtn.classList.contains('active'); resetTabs(); if(!act) { mBox.style.display = 'block'; mBtn.classList.add('active'); }};
 rBtn.onclick = () => { const act = rBtn.classList.contains('active'); resetTabs(); if(!act) { rBox.style.display = 'block'; rBtn.classList.add('active'); }};
 
+// Скачивание
 function download(content, name) {
     const blob = new Blob(["\ufeff", content], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
