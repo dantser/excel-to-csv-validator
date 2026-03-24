@@ -29,8 +29,27 @@ function handleFile(file) {
     const reader = new FileReader();
     reader.onload = (e) => {
         const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: "" });
+        // Читаем с сохранением форматов ячеек (нужно для дат)
+        const workbook = XLSX.read(data, { type: 'array', cellNF: true, cellText: true });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+        // УМНАЯ ПРОВЕРКА ДАТ:
+        // Проходим по всем ячейкам. Если это дата — берем её текст, если нет — оставляем как есть.
+        for (let z in sheet) {
+            if (z[0] === '!') continue; 
+            const cell = sheet[z];
+            // Если ячейка числовая (n) и её формат похож на дату (содержит m, d или y)
+            if (cell.t === 'n' && cell.z && /m|d|y/.test(cell.z.toLowerCase())) {
+                cell.v = cell.w || XLSX.utils.format_cell(cell); // Заменяем число на дату "20.03.2026"
+                cell.t = 's'; // Меняем тип на строку
+            }
+        }
+
+        const json = XLSX.utils.sheet_to_json(sheet, { 
+            header: 1, 
+            defval: "",
+            raw: true // Важно для ИНН: забираем их "чистыми" числами
+        });
         processData(json);
     };
     reader.readAsArrayBuffer(file);
@@ -76,17 +95,15 @@ function processData(data) {
         let errors = [];
         if (!nameVal) errors.push("Пустое название");
         if (!innVal) errors.push("Нет ИНН");
-        
-        // "Если что-то одно из этого есть (телефон ИЛИ имя), то ок"
-        if (!phoneVal && !contactVal) {
-            errors.push("Нет контактных данных (телефон или имя)");
-        }
+        // Правило "Хотя бы один контакт"
+        if (!phoneVal && !contactVal) errors.push("Нет контактных данных (телефон или имя)");
 
         if (errors.length > 0) {
             rejectedRows.push({ rowNum, reason: errors.join(", "), rowData: row });
             return;
         }
 
+        // ОЧИСТКА ТЕКСТА
         const quoteRegex = /["'«»„“]/g;
         let cleanName = nameVal.replace(quoteRegex, '').toUpperCase();
         let cleanInn = innVal.replace(/["'«»„“\s]/g, '');
@@ -100,6 +117,8 @@ function processData(data) {
     });
 
     renderUI(headers, validRows.length - 1);
+    
+    // Экспорт с разделителем ";" для Excel
     const ws = XLSX.utils.aoa_to_sheet(validRows);
     csvContent = XLSX.utils.sheet_to_csv(ws, { FS: ";" });
 
@@ -109,7 +128,8 @@ function processData(data) {
             headers.forEach((h, i) => obj[h] = r.rowData[i]);
             return obj;
         });
-        rejectedCsvContent = XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(rejData));
+        const wsRejected = XLSX.utils.json_to_sheet(rejData);
+        rejectedCsvContent = XLSX.utils.sheet_to_csv(wsRejected, { FS: ";" });
     }
 }
 
@@ -141,12 +161,14 @@ function fillTable(containerId, headers, data, isMod) {
     container.innerHTML = html + `</tbody></table>`;
 }
 
+// Управление табами
 const mBtn = document.getElementById('showModifiedBtn'), rBtn = document.getElementById('showRejectedBtn');
 const mBox = document.getElementById('modified-details'), rBox = document.getElementById('rejected-details');
 function resetTabs() { mBox.style.display = rBox.style.display = 'none'; mBtn.classList.remove('active'); rBtn.classList.remove('active'); }
 mBtn.onclick = () => { const act = mBtn.classList.contains('active'); resetTabs(); if(!act) { mBox.style.display = 'block'; mBtn.classList.add('active'); }};
 rBtn.onclick = () => { const act = rBtn.classList.contains('active'); resetTabs(); if(!act) { rBox.style.display = 'block'; rBtn.classList.add('active'); }};
 
+// Скачивание
 function download(content, name) {
     const blob = new Blob(["\ufeff", content], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
