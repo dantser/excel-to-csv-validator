@@ -115,8 +115,8 @@ function processData(data) {
 
         // КЛИНИНГ
         const quoteRegex = /["'«»„“]/g;
-        const llcRegex = /\bОБЩЕСТВО\s+С\s+ОГРАНИЧЕННОЙ\s+ОТВЕТСТВЕННОСТЬЮ\b/gi;
-        const ipRegex = /\bИНДИВИДУАЛЬНЫЙ\s+ПРЕДПРИНИМАТЕЛЬ\b/gi;
+        const llcRegex = /ОБЩЕСТВО\s+С\s+ОГРАНИЧЕННОЙ\s+ОТВЕТСТВЕННОСТЬЮ/gi;
+        const ipRegex = /ИНДИВИДУАЛЬНЫЙ\s+ПРЕДПРИНИМАТЕЛЬ/gi;
 
         let cleanName = nameVal
             .replace(quoteRegex, '')
