@@ -124,7 +124,6 @@ function processData(data) {
         // Важно: \w не покрывает кириллицу, поэтому используем явный диапазон букв.
         const llcRegex = /ОБЩЕСТВО\s+С\s+ОГРАНИЧЕНН[А-ЯЁA-Z]*\s+ОТВЕТСТВЕННОСТ[А-ЯЁA-Z]*/giu;
         const ipRegex = /ИНДИВИДУАЛЬН[А-ЯЁA-Z]*\s+ПРЕДПРИНИМАТЕЛ[А-ЯЁA-Z]*/giu;
-
         let cleanName = nameVal
             .replace(quoteRegex, '')
             .replace(llcRegex, 'ООО')
