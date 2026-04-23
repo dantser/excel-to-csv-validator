@@ -119,7 +119,6 @@ function processData(data) {
         // небольших вариациях/опечатках (например, в окончаниях) в исходном файле.
         const llcRegex = /ОБЩЕСТВО\s+С\s+ОГРАНИЧЕНН\w*\s+ОТВЕТСТВЕННОСТ\w*/giu;
         const ipRegex = /ИНДИВИДУАЛЬН\w*\s+ПРЕДПРИНИМАТЕЛ\w*/giu;
-
         let cleanName = nameVal
             .replace(quoteRegex, '')
             .replace(llcRegex, 'ООО')
