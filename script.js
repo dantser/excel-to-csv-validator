@@ -115,7 +115,18 @@ function processData(data) {
 
         // КЛИНИНГ
         const quoteRegex = /["'«»„“]/g;
-        let cleanName = nameVal.replace(quoteRegex, '').toUpperCase();
+        // Используем "мягкие" паттерны по основам слов, чтобы срабатывать даже при
+        // небольших вариациях/опечатках (например, в окончаниях) в исходном файле.
+        const llcRegex = /ОБЩЕСТВО\s+С\s+ОГРАНИЧЕНН\w*\s+ОТВЕТСТВЕННОСТ\w*/giu;
+        const ipRegex = /ИНДИВИДУАЛЬН\w*\s+ПРЕДПРИНИМАТЕЛ\w*/giu;
+
+        let cleanName = nameVal
+            .replace(quoteRegex, '')
+            .replace(llcRegex, 'ООО')
+            .replace(ipRegex, 'ИП')
+            .toUpperCase()
+            .replace(/\s{2,}/g, ' ')
+            .trim();
         let cleanInn = innVal.replace(/["'«»„“\s]/g, '');
 
         if (cleanName !== nameVal || cleanInn !== innVal) {
