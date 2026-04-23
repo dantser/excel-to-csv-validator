@@ -77,6 +77,7 @@ function processData(data) {
     const colInnIdx = findIdx("ИНН");
     const colPhoneIdx = findIdx("Контактный телефон");
     const colContactIdx = findIdx("Имя контакта");
+    const colEmailIdx = findIdx("Рабочий e-mail");
 
     if (colNameIdx === -1 || colInnIdx === -1 || colPhoneIdx === -1 || colContactIdx === -1) {
         let missing = [];
@@ -101,12 +102,15 @@ function processData(data) {
         const innVal = row[colInnIdx];
         const phoneVal = row[colPhoneIdx];
         const contactVal = row[colContactIdx];
+        const emailVal = colEmailIdx !== -1 ? row[colEmailIdx] : "";
 
         // ВАЛИДАЦИЯ
         let errors = [];
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!nameVal) errors.push("Пустое название");
         if (!innVal) errors.push("Нет ИНН");
         if (!phoneVal && !contactVal) errors.push("Нет контактных данных (тел/имя)");
+        if (emailVal && !emailRegex.test(emailVal)) errors.push("Некорректный email");
 
         if (errors.length > 0) {
             rejectedRows.push({ rowNum, reason: errors.join(", "), rowData: row });
@@ -115,13 +119,25 @@ function processData(data) {
 
         // КЛИНИНГ
         const quoteRegex = /["'«»„“]/g;
-        let cleanName = nameVal.replace(quoteRegex, '').toUpperCase();
+        // Используем "мягкие" паттерны по основам слов, чтобы срабатывать даже при
+        // небольших вариациях/опечатках (например, в окончаниях) в исходном файле.
+        // Важно: \w не покрывает кириллицу, поэтому используем явный диапазон букв.
+        const llcRegex = /ОБЩЕСТВО\s+С\s+ОГРАНИЧЕНН[А-ЯЁA-Z]*\s+ОТВЕТСТВЕННОСТ[А-ЯЁA-Z]*/giu;
+        const ipRegex = /ИНДИВИДУАЛЬН[А-ЯЁA-Z]*\s+ПРЕДПРИНИМАТЕЛ[А-ЯЁA-Z]*/giu;
+
+        let cleanName = nameVal
+            .replace(quoteRegex, '')
+            .replace(llcRegex, 'ООО')
+            .replace(ipRegex, 'ИП')
+            .toUpperCase()
+            .replace(/\s{2,}/g, ' ')
+            .trim();
         let cleanInn = innVal.replace(/["'«»„“\s]/g, '');
 
         if (cleanName !== nameVal || cleanInn !== innVal) {
-            modifiedRows.push({ rowNum, oldVal: nameVal, newVal: cleanName, rowData: [...row] });
             row[colNameIdx] = cleanName;
             row[colInnIdx] = cleanInn;
+            modifiedRows.push({ rowNum, oldVal: nameVal, newVal: cleanName, rowData: [...row] });
         }
         validRows.push(row);
     });
