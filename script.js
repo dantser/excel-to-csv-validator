@@ -115,13 +115,25 @@ function processData(data) {
 
         // КЛИНИНГ
         const quoteRegex = /["'«»„“]/g;
-        let cleanName = nameVal.replace(quoteRegex, '').toUpperCase();
+        // Используем "мягкие" паттерны по основам слов, чтобы срабатывать даже при
+        // небольших вариациях/опечатках (например, в окончаниях) в исходном файле.
+        // Важно: \w не покрывает кириллицу, поэтому используем явный диапазон букв.
+        const llcRegex = /ОБЩЕСТВО\s+С\s+ОГРАНИЧЕНН[А-ЯЁA-Z]*\s+ОТВЕТСТВЕННОСТ[А-ЯЁA-Z]*/giu;
+        const ipRegex = /ИНДИВИДУАЛЬН[А-ЯЁA-Z]*\s+ПРЕДПРИНИМАТЕЛ[А-ЯЁA-Z]*/giu;
+
+        let cleanName = nameVal
+            .replace(quoteRegex, '')
+            .replace(llcRegex, 'ООО')
+            .replace(ipRegex, 'ИП')
+            .toUpperCase()
+            .replace(/\s{2,}/g, ' ')
+            .trim();
         let cleanInn = innVal.replace(/["'«»„“\s]/g, '');
 
         if (cleanName !== nameVal || cleanInn !== innVal) {
-            modifiedRows.push({ rowNum, oldVal: nameVal, newVal: cleanName, rowData: [...row] });
             row[colNameIdx] = cleanName;
             row[colInnIdx] = cleanInn;
+            modifiedRows.push({ rowNum, oldVal: nameVal, newVal: cleanName, rowData: [...row] });
         }
         validRows.push(row);
     });
