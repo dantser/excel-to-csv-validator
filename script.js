@@ -77,6 +77,7 @@ function processData(data) {
     const colInnIdx = findIdx("ИНН");
     const colPhoneIdx = findIdx("Контактный телефон");
     const colContactIdx = findIdx("Имя контакта");
+    const colEmailIdx = findIdx("Рабочий e-mail");
 
     if (colNameIdx === -1 || colInnIdx === -1 || colPhoneIdx === -1 || colContactIdx === -1) {
         let missing = [];
@@ -101,12 +102,15 @@ function processData(data) {
         const innVal = row[colInnIdx];
         const phoneVal = row[colPhoneIdx];
         const contactVal = row[colContactIdx];
+        const emailVal = colEmailIdx !== -1 ? row[colEmailIdx] : "";
 
         // ВАЛИДАЦИЯ
         let errors = [];
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!nameVal) errors.push("Пустое название");
         if (!innVal) errors.push("Нет ИНН");
         if (!phoneVal && !contactVal) errors.push("Нет контактных данных (тел/имя)");
+        if (emailVal && !emailRegex.test(emailVal)) errors.push("Некорректный email");
 
         if (errors.length > 0) {
             rejectedRows.push({ rowNum, reason: errors.join(", "), rowData: row });
