@@ -115,7 +115,16 @@ function processData(data) {
 
         // КЛИНИНГ
         const quoteRegex = /["'«»„“]/g;
-        let cleanName = nameVal.replace(quoteRegex, '').toUpperCase();
+        const llcRegex = /ОБЩЕСТВО\s+С\s+ОГРАНИЧЕННОЙ\s+ОТВЕТСТВЕННОСТЬЮ/gi;
+        const ipRegex = /ИНДИВИДУАЛЬНЫЙ\s+ПРЕДПРИНИМАТЕЛЬ/gi;
+
+        let cleanName = nameVal
+            .replace(quoteRegex, '')
+            .replace(llcRegex, 'ООО')
+            .replace(ipRegex, 'ИП')
+            .toUpperCase()
+            .replace(/\s{2,}/g, ' ')
+            .trim();
         let cleanInn = innVal.replace(/["'«»„“\s]/g, '');
 
         if (cleanName !== nameVal || cleanInn !== innVal) {
