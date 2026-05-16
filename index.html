@@ -15,53 +15,22 @@
         </header>
 
         <main class="card">
-            <div id="dropzone" class="dropzone">
+            <div id="dropzone" class="dropzone" role="region" aria-label="Зона загрузки файла">
                 <div class="dz-content">
-                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
                     </svg>
                     <p>Перетащите файл или</p>
                     <label for="fileInput" class="btn-secondary">Выберите файл Excel</label>
-                    <input type="file" id="fileInput" accept=".xlsx, .xls" hidden />
+                    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden />
                 </div>
             </div>
 
-            <div id="report-container" class="report-container" style="display: none;">
-                <div id="stats-summary" class="stats-grid"></div>
-                <div class="status-message">✅ Проверка завершена</div>
-
-                <div class="main-action">
-                    <button id="downloadBtn" class="btn-primary">
-                        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
-                        </svg>
-                        Скачать CSV
-                    </button>
-                </div>
-
-                <div class="view-controls">
-                    <button id="showModifiedBtn" class="btn-outline">Показать изменения</button>
-                    <button id="showRejectedBtn" class="btn-outline">Показать удаленные</button>
-                </div>
-
-                <div id="modified-details" class="details-section" style="display: none;">
-                    <h4>📝 Лог исправлений (CAPS / Кавычки):</h4>
-                    <div class="table-wrapper" id="modified-table-container"></div>
-                </div>
-
-                <div id="rejected-details" class="details-section" style="display: none;">
-                    <div class="section-header">
-                        <h4>❌ Удаленные строки:</h4>
-                        <button id="downloadRejectedBtn" class="btn-secondary btn-small">
-                            <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
-                            </svg>
-                            Скачать удаленные (.csv)
-                        </button>
-                    </div>
-                    <div class="table-wrapper" id="rejected-table-container"></div>
-                </div>
-            </div>
+            <!--
+                report-container заполняется динамически из script.js.
+                Статус, кнопки и таблицы рендерятся в JS — не захардкожены здесь.
+            -->
+            <div id="report-container" class="report-container" style="display: none;" aria-live="polite"></div>
         </main>
 
         <footer>
