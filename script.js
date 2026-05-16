@@ -215,8 +215,33 @@ function processData(data) {
         validRows.push(row);
     });
 
+    // ── Проверка дублей по ИНН ──────────────────────────────────────────────
+    // Проходим по validRows (без заголовка), ищем повторяющиеся ИНН.
+    // Первое вхождение оставляем, все последующие — в rejectedRows.
+    const seenInn = new Map(); // ИНН → номер строки первого вхождения
+
+    // Фильтруем validRows на месте (кроме заголовка)
+    const dedupedRows = [validRows[0]]; // заголовок всегда остаётся
+    for (let i = 1; i < validRows.length; i++) {
+        const row    = validRows[i];
+        const inn    = row[colInnIdx];
+        const rowNum = i + 1; // +1 заголовок (validRows уже без отклонённых)
+
+        if (inn && seenInn.has(inn)) {
+            const firstRowNum = seenInn.get(inn);
+            AppState.rejectedRows.push({
+                rowNum,
+                reason: `Дубликат: ИНН ${inn} уже встречается в строке ${firstRowNum}`,
+                rowData: row,
+            });
+        } else {
+            if (inn) seenInn.set(inn, rowNum);
+            dedupedRows.push(row);
+        }
+    }
+
     // CSV формируем до renderUI, чтобы кнопка скачать была готова сразу
-    const ws = XLSX.utils.aoa_to_sheet(validRows);
+    const ws = XLSX.utils.aoa_to_sheet(dedupedRows);
     AppState.csvContent = XLSX.utils.sheet_to_csv(ws, { FS: ";" });
 
     if (AppState.rejectedRows.length > 0) {
@@ -229,7 +254,7 @@ function processData(data) {
         AppState.rejectedCsvContent = XLSX.utils.sheet_to_csv(wsRej, { FS: ";" });
     }
 
-    renderUI(headers, validRows.length - 1);
+    renderUI(headers, dedupedRows.length - 1);
 }
 
 // ─── Рендер UI ────────────────────────────────────────────────────────────────
